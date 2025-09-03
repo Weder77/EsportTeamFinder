@@ -4,6 +4,8 @@ import SectionTitle from "../components/common/SectionTitle";
 import Pagination from "../components/common/Pagination";
 import Spinner from "../components/common/Spinner";
 import { useMatches } from "../hooks/useMatches";
+import { useTournaments } from "../hooks/useTournaments";
+import { PandaScore } from "../services/pandascore";
 import LeaderboardModal from "../components/bet/LeaderboardModal";
 import fallbackLogo from "../assets/logo.png";
 
@@ -23,14 +25,17 @@ function getMaxWins(bo) {
 export default function BetPage() {
   const [nick, setNick] = useState(() => localStorage.getItem(LS_USER) || "Moi");
   const [pageUp, setPageUp] = useState(1);
-  const perPage = 10;
+  const perPage = 50; // increase to capture enough upcoming matches per tournament
   const tiersSA = React.useMemo(() => ["s","a"], []);
   const upcoming = useMatches("upcoming", { page: pageUp, perPage, tiers: tiersSA });
   const running = useMatches("running", { page: 1, perPage: 50, tiers: tiersSA });
   const past = useMatches("past", { page: 1, perPage: 50, tiers: tiersSA });
+  const { data: tournaments, loading: loadingTournaments } = useTournaments({ page: 1, perPage: 50, tiers: tiersSA });
   const [store, setStore] = useState({});
   const [leaderOpen, setLeaderOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState({});
+  const [loadingGroup, setLoadingGroup] = useState({});
+  const [loadedMatches, setLoadedMatches] = useState({});
   const [copiedByGroup, setCopiedByGroup] = useState({});
 
   useEffect(() => { setStore(loadStore()); }, []);
@@ -153,27 +158,47 @@ export default function BetPage() {
               return acc;
             }, {});
             const runEntries = Object.entries(runMap);
-            const current = runEntries.length ? runEntries.sort((a,b)=>b[1].rows.length - a[1].rows.length)[0] : null;
+            const currentArr = runEntries.sort((a,b)=>b[1].rows.length - a[1].rows.length).slice(0,2);
+            const currentIds = new Set(currentArr.map(([gid])=>gid));
             const upEntries = Object.entries(upMap);
-            let next = null;
-            if (upEntries.length) {
-              next = upEntries
-                .map(([gid, g]) => {
-                  const times = g.rows.map(x => new Date(x.begin_at || Date.now()).getTime());
-                  const minTime = times.length ? Math.min(...times) : Date.now();
-                  return [gid, g, minTime];
-                })
-                .sort((a,b)=>a[2]-b[2])
-                .find(([gid]) => !current || gid !== current[0]);
-              if (next) next = [next[0], next[1]];
-            }
-            const toShow = [current, next].filter(Boolean);
-            return toShow.map(([gid, group]) => (
+            const getMin = (g) => {
+              const t = g.rows.map(x => new Date(x.begin_at || Date.now()).getTime());
+              return t.length ? Math.min(...t) : Date.now();
+            };
+            const nextArr = upEntries
+              .filter(([gid]) => !currentIds.has(gid))
+              .sort((a,b)=> getMin(a[1]) - getMin(b[1]))
+              .slice(0,2);
+            const toShow = [...currentArr, ...nextArr];
+            const renderGroup = ([gid, group]) => (
             <div key={gid} className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
               <div className="w-full px-4 py-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold truncate">{group.name || 'Tournoi'}</div>
-                  <div className="text-xs text-white/60">{group.rows.length} match(s) à venir</div>
+                  <div className="text-xs text-white/60 flex items-center gap-2">
+                    <span>{group.rows.length} match(s) à venir</span>
+                    {group.rows.some(r => (r.status || '').toLowerCase() === 'running') ? (
+                      <span className="shrink-0 px-1.5 py-0.5 rounded-full border border-emerald-400/40 bg-emerald-500/15 text-emerald-300/90">En cours</span>
+                    ) : (
+                      <span className="shrink-0 px-1.5 py-0.5 rounded-full border border-amber-400/40 bg-amber-500/15 text-amber-300/90">À venir</span>
+                    )}
+                  </div>
+                  {(() => {
+                    const begins = (group.rows || [])
+                      .map(r => Date.parse(r.begin_at))
+                      .filter(n => Number.isFinite(n));
+                    const ends = (group.rows || [])
+                      .map(r => Date.parse(r.end_at || r.begin_at))
+                      .filter(n => Number.isFinite(n));
+                    if (!begins.length) return null;
+                    const start = new Date(Math.min(...begins));
+                    const end = new Date((ends.length ? Math.max(...ends) : Math.max(...begins)));
+                    return (
+                      <div className="text-[10px] text-white/60 mt-0.5">
+                        {fmtDateShort(start)} → {fmtDateShort(end)}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <button
                   onClick={async ()=>{
@@ -249,7 +274,23 @@ export default function BetPage() {
                 </div>
               )}
             </div>
-            ));
+            );
+            return (
+              <>
+                {currentArr.length ? (
+                  <div className="space-y-3">
+                    <div className="text-xs uppercase tracking-wider text-white/60">Séries en cours</div>
+                    {currentArr.map(renderGroup)}
+                  </div>
+                ) : null}
+                {nextArr.length ? (
+                  <div className="space-y-3">
+                    <div className="text-xs uppercase tracking-wider text-white/60">Séries à venir</div>
+                    {nextArr.map(renderGroup)}
+                  </div>
+                ) : null}
+              </>
+            );
           })()}
         </div>
 

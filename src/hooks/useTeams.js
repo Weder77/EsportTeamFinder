@@ -55,7 +55,6 @@ export function useTeams({ page = 1, perPage = 10, search = "" } = {}) {
         }
       } catch (e) {
         // Log details for troubleshooting in dev console
-        // eslint-disable-next-line no-console
         console.error("PandaScore teams fetch failed", e);
         if (!cancelled) setError(e);
       } finally {

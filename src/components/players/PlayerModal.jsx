@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { usePlayer } from "../../hooks/usePlayer";
@@ -8,7 +9,7 @@ import { countryCodeToEmoji } from "../../utils/flags";
 export default function PlayerModal({ idOrSlug, onClose }) {
   const { data, loading, error } = usePlayer(idOrSlug);
 
-  return (
+  const content = (
     <AnimatePresence>
       {idOrSlug && (
         <motion.div
@@ -40,16 +41,37 @@ export default function PlayerModal({ idOrSlug, onClose }) {
                   }}
                 />
                 <div className="flex-1">
-                  <div className="text-xl font-bold">{data.name}</div>
-                  <div className="text-sm text-white/60">
+                  <div className="text-xl font-bold truncate">{data.name}</div>
+                  <div className="text-sm text-white/60 truncate">
                     {data.first_name || ""} {data.last_name || ""}
                   </div>
-                  <div className="mt-2 text-sm text-white/70 flex items-center gap-2">
+                  <div className="mt-2 text-sm text-white/70 flex items-center gap-2 flex-wrap">
                     {data.nationality && <span>{countryCodeToEmoji(data.nationality)}</span>}
                     {data.nationality}
                     {data.age ? <span>• {data.age} ans</span> : null}
                     {data.current_videogame?.name ? <span>• {data.current_videogame.name}</span> : null}
                   </div>
+
+                  {data.current_team && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <img
+                        src={data.current_team.image_url || fallbackLogo}
+                        alt={data.current_team.acronym || data.current_team.name}
+                        className="w-6 h-6 rounded bg-black/40 object-contain"
+                        onError={(e) => {
+                          if (e.currentTarget.src !== fallbackLogo) e.currentTarget.src = fallbackLogo;
+                        }}
+                      />
+                      <div className="text-sm font-medium truncate">
+                        {data.current_team.name}
+                      </div>
+                      {data.current_team.acronym && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded border border-white/10 bg-white/5">
+                          {data.current_team.acronym}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -58,5 +80,10 @@ export default function PlayerModal({ idOrSlug, onClose }) {
       )}
     </AnimatePresence>
   );
-}
 
+  // Render via portal to avoid being constrained by header/sticky contexts
+  if (typeof document !== "undefined") {
+    return createPortal(content, document.body);
+  }
+  return content;
+}

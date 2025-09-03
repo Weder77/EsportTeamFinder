@@ -48,8 +48,8 @@ export default function TeamDetails({ team, selectedGame, onChangeGame, onSelect
       >
         <div className="flex items-start gap-4">
           <img
-            src={team.logo || fallbackLogo}
-            alt={team.name}
+            src={team.image_url || team.logo || fallbackLogo}
+            alt={team.name || team.slug}
             className="w-16 h-16 rounded-xl bg-black/40 p-2 object-contain"
             onError={(e) => {
               if (e.currentTarget.src !== fallbackLogo) {
@@ -64,8 +64,8 @@ export default function TeamDetails({ team, selectedGame, onChangeGame, onSelect
                 {team.short}
               </span>
               <span className="px-2 py-1 text-xs rounded-full border border-white/10 bg-white/5 inline-flex items-center gap-1">
-                {team.country ? <span>{countryCodeToEmoji(team.country)}</span> : null}
-                <span>{team.country}</span>
+                {team.country || team.location ? <span>{countryCodeToEmoji((team.country || team.location) || '')}</span> : null}
+                <span>{team.country || team.location}</span>
               </span>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-white/70">

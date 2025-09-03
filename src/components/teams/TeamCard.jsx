@@ -17,8 +17,8 @@ export default function TeamCard({ team, selected, onSelect }) {
       style={selected ? neon(team.accent) : {}}
     >
       <img
-        src={team.logo || fallbackLogo}
-        alt={team.name}
+        src={team.image_url || team.logo || fallbackLogo}
+        alt={team.name || team.slug}
         className="w-10 h-10 rounded-lg object-contain bg-black/40 p-1"
         onError={(e) => {
           if (e.currentTarget.src !== fallbackLogo) {
@@ -27,10 +27,12 @@ export default function TeamCard({ team, selected, onSelect }) {
         }}
       />
       <div className="flex-1">
-        <h3 className="font-semibold">{team.name}</h3>
+        <h3 className="font-semibold">{team.name || team.slug}</h3>
         <div className="text-xs text-white/60 flex items-center gap-1">
-          {team.country ? <span className="mr-1">{countryCodeToEmoji(team.country)}</span> : null}
-          <span>{team.country}</span>
+          {team.country || team.location ? (
+            <span className="mr-1">{countryCodeToEmoji((team.country || team.location) || '')}</span>
+          ) : null}
+          <span>{team.country || team.location}</span>
         </div>
       </div>
       <ChevronRight className="w-4 h-4 text-white/40 group-hover:text-white/70" />

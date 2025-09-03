@@ -23,18 +23,42 @@ function buildPages(current, total) {
   return pages;
 }
 
-export default function Pagination({ page, totalPages, hasPrev, hasNext, onChange }) {
+export default function Pagination({ page, totalPages, hasPrev, hasNext, onChange, arrowsOnly = false, neonActive = false }) {
   const pages = buildPages(page || 1, totalPages || 1);
+
+  if (arrowsOnly) {
+    return (
+      <div className="flex items-center justify-center gap-2 pt-2">
+        {hasPrev ? (
+          <button
+            className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5"
+            onClick={() => onChange?.(Math.max(1, (page || 1) - 1))}
+          >
+            &lt;
+          </button>
+        ) : null}
+        {hasNext ? (
+          <button
+            className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5"
+            onClick={() => onChange?.((page || 1) + 1)}
+          >
+            &gt;
+          </button>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-between pt-2">
-      <button
-        className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 disabled:opacity-40"
-        onClick={() => onChange?.(Math.max(1, (page || 1) - 1))}
-        disabled={!hasPrev}
-      >
-        Précédent
-      </button>
+      {hasPrev ? (
+        <button
+          className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5"
+          onClick={() => onChange?.(Math.max(1, (page || 1) - 1))}
+        >
+          Précédent
+        </button>
+      ) : <span />}
       <div className="flex items-center gap-1 text-sm">
         {pages.map((p, idx) =>
           p === "..." ? (
@@ -43,20 +67,27 @@ export default function Pagination({ page, totalPages, hasPrev, hasNext, onChang
             <button
               key={p}
               onClick={() => onChange?.(p)}
-              className={`px-2.5 py-1 rounded-md border border-white/10 ${p === page ? "bg-white/15" : "bg-white/5 hover:bg-white/10"}`}
+              className={`px-2.5 py-1 rounded-md border ${
+                p === page
+                  ? neonActive
+                    ? "border-fuchsia-500/60 bg-white/10 text-white font-semibold shadow-[0_0_8px_rgba(168,85,247,0.5),0_0_18px_rgba(168,85,247,0.35)]"
+                    : "border-fuchsia-500/40 bg-white/15 text-white font-semibold"
+                  : "border-white/10 bg-white/5 hover:bg-white/10"
+              }`}
             >
               {p}
             </button>
           )
         )}
       </div>
-      <button
-        className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 disabled:opacity-40"
-        onClick={() => onChange?.((page || 1) + 1)}
-        disabled={!hasNext}
-      >
-        Suivant
-      </button>
+      {hasNext ? (
+        <button
+          className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5"
+          onClick={() => onChange?.((page || 1) + 1)}
+        >
+          Suivant
+        </button>
+      ) : <span />}
     </div>
   );
 }

@@ -10,6 +10,7 @@ function mapPlayer(p) {
     image: p.image_url || "",
     active: p.active !== false,
     role: p.role || null,
+    game: p.current_videogame?.name || null,
   };
 }
 
@@ -53,7 +54,10 @@ export function useTeamPlayers(teamIdOrSlug, { page = 1, perPage = 50, gameFilte
         }
         const gameById = new Map(gameResults.map((x) => [x.id, x.game]));
         const mapped = Array.isArray(items)
-          ? items.map(mapPlayer).filter(Boolean).map((p) => ({ ...p, game: gameById.get(Number(p.id)) || null }))
+          ? items
+              .map(mapPlayer)
+              .filter(Boolean)
+              .map((p) => ({ ...p, game: gameById.get(Number(p.id)) || p.game || null }))
           : [];
         if (!cancelled) {
           setData(mapped);
